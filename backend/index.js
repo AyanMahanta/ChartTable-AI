@@ -1,8 +1,9 @@
 // backend/index.js
 require('dotenv').config();
-const express = require('express');
+const express = require("express");
 const cors = require('cors');
 const { Pool } = require('pg');
+const axios = require("axios");
 
 const app = express();
 app.use(cors());
@@ -47,46 +48,41 @@ app.post('/api/podcasts', async (req, res) => {
   }
 });
 
-const axios = require("axios");
-const { supabase } = require("../utils/supabase");
 
 app.post("/api/insights", async (req, res) => {
   const { episodeTitle, episodeDescription, podcastId } = req.body;
 
   try {
+    const apiKey = process.env.RAPIDAPI_KEY;
+    const apiHost = process.env.RAPIDAPI_HOST;
+
+    if (!apiKey) {
+      return res.status(400).json({ error: "API Key is missing!" });
+    }
+
     const response = await axios.post(
-      "https://models.inference.ai.azure.com/chat/completions",
+      `https://${apiHost}/generate/by-text`,
       {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "user",
-            content: `Summarize this podcast: ${episodeTitle} - ${episodeDescription}`,
-          },
-        ],
+        text_prompt: `${episodeTitle} - ${episodeDescription}`,
+        structure_transformation: 0.5,
+        seed: 0,
+        callback_url: "",
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json",
+          "X-RapidAPI-Key": apiKey,
+          "X-RapidAPI-Host": apiHost,
         },
       }
     );
 
-    const insight = response.data.choices[0].message.content;
-
-    const { data, error } = await supabase
-      .from("insights")
-      .insert([{ podcast_id: podcastId, episode_title: episodeTitle, insight }]);
-
-    if (error) {
-      throw error;
-    }
+    const insight = response.data;
 
     res.json({ insight });
   } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({ error: "AI Insights Failed" });
+    console.error("API Error:", error.response ? error.response.data : error.message);
+    res.status(500).json({ error: "Failed to generate insights" });
   }
 });
 
