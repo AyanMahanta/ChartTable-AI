@@ -47,22 +47,36 @@ app.post('/api/podcasts', async (req, res) => {
     }
 });
 
-const { OpenAI } = require('openai');
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const axios = require("axios");
+const { supabase } = require("../utils/supabase");
 
-app.post('/api/insights', async (req, res) => {
+app.post("/api/insights", async (req, res) => {
   const { episodeTitle, episodeDescription, podcastId } = req.body;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4-turbo',
-      messages: [{ role: 'user', content: `Summarize this podcast: ${episodeTitle} - ${episodeDescription}` }],
-    });
+    const response = await axios.post(
+      "https://api.deepseek.com/v1/chat/completions",
+      {
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "user",
+            content: `Summarize this podcast: ${episodeTitle} - ${episodeDescription}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const insight = response.choices[0].message.content;
+    const insight = response.data.choices[0].message.content;
 
     const { data, error } = await supabase
-      .from('insights')
+      .from("insights")
       .insert([{ podcast_id: podcastId, episode_title: episodeTitle, insight }]);
 
     if (error) {
@@ -71,10 +85,11 @@ app.post('/api/insights', async (req, res) => {
 
     res.json({ insight });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'AI Insights Failed' });
+    console.error("AI Error:", error);
+    res.status(500).json({ error: "AI Insights Failed" });
   }
 });
+
 
 
 

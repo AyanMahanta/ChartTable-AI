@@ -1,27 +1,56 @@
-require('dotenv').config();
-import { OpenAI } from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const axios = require("axios");
+const { supabase } = require("@/utils/supabase");
 
 export async function POST(req) {
-  const { title } = await req.json();
-
-  if (!title) {
-    return Response.json({ error: "Title is required" }, { status: 400 });
-  }
-
   try {
-    const aiResponse = await openai.chat.completions.create({
-      model: "gpt-4-turbo",
-      messages: [{ role: "user", content: `Give me a summary for the podcast: ${title}` }],
-    });
+    const { episodeTitle, episodeDescription, podcastId } = await req.json();
 
-    const insight = aiResponse.choices[0].message.content;
-    return Response.json({ insight });
+    const apiKey = process.env.DEEPSEEK_API_KEY; // Your DeepSeek API Key
+    if (!apiKey) {
+      throw new Error("API Key is missing");
+    }
+
+    const response = await axios.post(
+      "https://api.deepseek.com/v1/chat/completions",
+      {
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "user",
+            content: `Summarize this podcast: ${episodeTitle} - ${episodeDescription}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const insight = response.data.choices[0].message.content;
+
+    const { data, error } = await supabase
+      .from("insights")
+      .insert([{ podcast_id: podcastId, episode_title: episodeTitle, insight }]);
+
+    if (error) {
+      throw error;
+    }
+
+    return new Response(JSON.stringify({ insight }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("AI Error:", error);
-    return Response.json({ error: "AI service failed" }, { status: 500 });
+    return new Response(
+      JSON.stringify({ error: "AI Insights Failed" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
