@@ -16,7 +16,7 @@ export async function POST(req) {
     console.log("Episode Description:", episodeDescription);
 
     const response = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
+      "https://models.inference.ai.azure.com/chat/completions",
       {
         model: "gpt-3.5-turbo",
         messages: [
