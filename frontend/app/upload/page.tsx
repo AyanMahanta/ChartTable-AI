@@ -36,8 +36,13 @@ export default function Upload() {
       const aiResponse = await fetch("/api/ai-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({
+          episodeTitle: title, // Fix this field name
+          episodeDescription: "No description available", // Dummy description
+          podcastId: data.path, // This will store the uploaded file path
+        }),
       });
+      
   
       if (!aiResponse.ok) {
         console.error("AI API Error");

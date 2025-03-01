@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 const pool = new Pool({
-  connectionString: process.env.SUPABASE_DB_URL,
+  connectionString: process.env.SUPABASE_URL,
 });
 
 // Signup Endpoint
@@ -40,11 +40,11 @@ app.get('/api/podcasts', async (req, res) => {
 app.post('/api/podcasts', async (req, res) => {
   const { rssUrl } = req.body;
   const podcast = await fetchPodcastData(rssUrl);
-    if (podcast) {
-      res.json(podcast);
-    } else {
-      res.status(400).json({ error: 'Invalid RSS URL' });
-    }
+  if (podcast) {
+    res.json(podcast);
+  } else {
+    res.status(400).json({ error: 'Invalid RSS URL' });
+  }
 });
 
 const axios = require("axios");
@@ -55,9 +55,9 @@ app.post("/api/insights", async (req, res) => {
 
   try {
     const response = await axios.post(
-      "https://api.deepseek.com/v1/chat/completions",
+      "https://api.openai.com/v1/chat/completions",
       {
-        model: "deepseek-chat",
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "user",
@@ -67,7 +67,7 @@ app.post("/api/insights", async (req, res) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
       }
@@ -90,13 +90,9 @@ app.post("/api/insights", async (req, res) => {
   }
 });
 
-
-
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 app.get('/', (req, res) => {
-    res.send('Backend is running...');
-  });
-  
+  res.send('Backend is running...');
+});

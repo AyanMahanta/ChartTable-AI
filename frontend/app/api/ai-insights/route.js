@@ -5,15 +5,20 @@ export async function POST(req) {
   try {
     const { episodeTitle, episodeDescription, podcastId } = await req.json();
 
-    const apiKey = process.env.DEEPSEEK_API_KEY; // Your DeepSeek API Key
+    const apiKey = process.env.OPENAI_API_KEY; // Your OpenAI API Key
     if (!apiKey) {
       throw new Error("API Key is missing");
     }
 
+    console.log("Sending request to OpenAI API...");
+    console.log("API Key:", apiKey);
+    console.log("Episode Title:", episodeTitle);
+    console.log("Episode Description:", episodeDescription);
+
     const response = await axios.post(
-      "https://api.deepseek.com/v1/chat/completions",
+      "https://api.openai.com/v1/chat/completions",
       {
-        model: "deepseek-chat",
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "user",
